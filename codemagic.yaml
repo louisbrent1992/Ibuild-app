@@ -3,8 +3,10 @@
 # Both stores get drafts, never a release:
 #   iOS      uploaded to App Store Connect; not submitted to TestFlight or App
 #            Store review, so it waits there until a version is submitted.
-#   Android  uploaded to the Play production track as a draft; nothing reaches
-#            users until it is rolled out by hand in Play Console.
+#   Android  uploaded to Play's closed testing track (alpha) as a draft; nothing
+#            reaches testers until it is rolled out by hand in Play Console.
+#            Production stays closed to the API until Play grants the app
+#            production access, so CI does not target it.
 #
 # Secrets live in this Codemagic app's variable groups (mark every value Secure):
 #   asc_credentials   APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID,
@@ -14,8 +16,9 @@
 #                     CM_KEY_ALIAS, CM_KEY_PASSWORD
 #   play_publishing   GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (service account JSON)
 #
-# Build numbers use Codemagic's per-app counter, which only goes up, so they never
-# collide in either store. The version name comes from pubspec.yaml.
+# iOS build numbers use Codemagic's per-app counter. Android ones come from Play
+# (latest + 1), so they stay above bundles uploaded by hand. The version name
+# comes from pubspec.yaml.
 
 definitions:
   triggering: &main_push
@@ -80,6 +83,8 @@ workflows:
       groups:
         - android_signing
         - play_publishing
+      vars:
+        PACKAGE_NAME: com.adventhub.ibuild
     triggering: *main_push
     scripts:
       - name: Get Flutter packages
@@ -97,11 +102,13 @@ workflows:
           keyPassword=$CM_KEY_PASSWORD
           EOF
       - name: Build Android App Bundle
-        script: flutter build appbundle --release --build-number=$BUILD_NUMBER
+        script: |
+          LATEST=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" || echo 0)
+          flutter build appbundle --release --build-number=$((LATEST + 1))
     artifacts:
       - build/app/outputs/bundle/release/*.aab
     publishing:
       google_play:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: production
+        track: alpha
         submit_as_draft: true

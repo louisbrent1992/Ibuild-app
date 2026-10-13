@@ -56,13 +56,14 @@ class DefaultFirebaseOptions {
     projectId: 'ibuild-adventhub',
     storageBucket: 'ibuild-adventhub.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBIpOC8aSJgm3N4wiSPOUPtUVAGMvH5aRA',
     appId: '1:1014976306147:ios:4f8764c4b8f16a4a511ed6',
     messagingSenderId: '1014976306147',
     projectId: 'ibuild-adventhub',
     storageBucket: 'ibuild-adventhub.firebasestorage.app',
+    androidClientId: '1014976306147-3bg2ha1um78ajgi4b9q859kp1d4v43vd.apps.googleusercontent.com',
+    iosClientId: '1014976306147-3h2hubn61mhoq3tntglqi48pumtg63vs.apps.googleusercontent.com',
     iosBundleId: 'com.adventhub.ibuild',
   );
 }
