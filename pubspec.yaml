@@ -1,7 +1,7 @@
 name: ibuild
 description: A phone-first control plane for iOS and Flutter builds that run on remote Mac infrastructure.
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.6.0
