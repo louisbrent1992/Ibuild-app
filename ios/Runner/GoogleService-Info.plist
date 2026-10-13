@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyBIpOC8aSJgm3N4wiSPOUPtUVAGMvH5aRA</string>
+	<key>GCM_SENDER_ID</key>
+	<string>1014976306147</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.adventhub.ibuild</string>
+	<key>PROJECT_ID</key>
+	<string>ibuild-adventhub</string>
+	<key>STORAGE_BUCKET</key>
+	<string>ibuild-adventhub.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:1014976306147:ios:4f8764c4b8f16a4a511ed6</string>
+</dict>
+</plist>

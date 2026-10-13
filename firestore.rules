@@ -1,0 +1,35 @@
+rules_version = '2';
+
+// iBuild accounts. Connection tokens are never stored here; only identity
+// and saved projects.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Profile: username + email. Only the owner can read or change it.
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /projects/{projectId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // Username claims, so names are unique. Anyone may look up one name
+    // (the sign-up availability check) but not list them. A claim can only
+    // be created by its owner, never changed, and only deleted by its owner.
+    match /usernames/{name} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && name.matches('^[a-z0-9_]{3,20}$');
+      allow update: if false;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+  }
+}

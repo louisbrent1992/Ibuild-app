@@ -1,0 +1,25 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "ibuild-adventhub",
+          "appId": "1:1014976306147:android:4d9cf9783eff5bbe511ed6",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "ibuild-adventhub",
+          "configurations": {
+            "android": "1:1014976306147:android:4d9cf9783eff5bbe511ed6",
+            "ios": "1:1014976306147:ios:4f8764c4b8f16a4a511ed6"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

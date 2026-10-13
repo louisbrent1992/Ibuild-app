@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1014976306147",
+    "project_id": "ibuild-adventhub",
+    "storage_bucket": "ibuild-adventhub.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1014976306147:android:4d9cf9783eff5bbe511ed6",
+        "android_client_info": {
+          "package_name": "com.adventhub.ibuild"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHn3_dOlzHx1_u_iLRLgL_Pxf2XBnk-l8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

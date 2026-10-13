@@ -8,6 +8,7 @@ import '../models/build.dart';
 import '../models/pipeline.dart';
 import '../models/project.dart';
 import '../models/testflight.dart';
+import '../services/account_service.dart';
 import '../services/api_client.dart';
 import '../services/app_store_connect_service.dart';
 import '../services/ci_provider.dart';
@@ -20,11 +21,21 @@ enum Connection { codemagic, github, appStoreConnect }
 
 /// Holds credentials, projects and live build state for the whole app.
 class AppController extends ChangeNotifier {
-  AppController({FlutterSecureStorage? storage})
+  AppController({FlutterSecureStorage? storage, AccountService? accounts})
       : _storage = storage ??
             const FlutterSecureStorage(
               aOptions: AndroidOptions(encryptedSharedPreferences: true),
-            );
+            ),
+        accounts = accounts ?? const NoAccounts();
+
+  /// Optional sign-in. An account carries the user's identity and their
+  /// saved projects; connection tokens never leave the device.
+  final AccountService accounts;
+  Account? _account;
+  StreamSubscription<Account?>? _accountSub;
+
+  /// Last error from syncing projects with the account, if any.
+  String? syncError;
 
   static const _kDemo = 'demo_mode';
   static const _kCodemagic = 'codemagic_token';
@@ -86,6 +97,7 @@ class AppController extends ChangeNotifier {
   // ------------------------------------------------------------ Reading
 
   bool get demoMode => _demoMode;
+  Account? get account => _account;
   bool get hasCodemagic => (_codemagicToken ?? '').isNotEmpty;
   bool get hasGitHub => (_githubToken ?? '').isNotEmpty;
   bool get hasAppStoreConnect =>
@@ -170,7 +182,45 @@ class AppController extends ChangeNotifier {
     _rebuildServices();
     notifyListeners();
     unawaited(refreshAll());
+    _accountSub = accounts.changes().listen(_onAccount);
   }
+
+  Future<void> _onAccount(Account? next) async {
+    final signedIn = _account?.uid != next?.uid && next != null;
+    _account = next;
+    syncError = null;
+    notifyListeners();
+    if (signedIn) await _syncProjects();
+  }
+
+  /// Merges this device's projects with the account's and saves the result
+  /// on both sides, so either one can be the new phone.
+  Future<void> _syncProjects() async {
+    try {
+      final remote = await accounts.loadProjects();
+      final remoteIds = {for (final p in remote) p.id: p.toJson().toString()};
+      _projects = mergeProjects(_projects, remote);
+      await _saveProjects();
+      for (final p in _projects) {
+        if (remoteIds[p.id] != p.toJson().toString()) {
+          await accounts.saveProject(p);
+        }
+      }
+    } catch (e) {
+      syncError = 'Could not sync projects: $e';
+    }
+    notifyListeners();
+  }
+
+  /// Mirrors one project change to the account without holding up the UI.
+  void _pushProject(Future<void> Function() change) {
+    if (_account == null) return;
+    unawaited(change().catchError((Object e) {
+      syncError = 'Could not sync projects: $e';
+      notifyListeners();
+    }));
+  }
+
 
   Future<void> _write(String key, String? value) async {
     if (value == null || value.isEmpty) {
@@ -326,6 +376,7 @@ class AppController extends ChangeNotifier {
     } else {
       _projects = [..._projects, added];
       await _saveProjects();
+      _pushProject(() => accounts.saveProject(added));
     }
     await selectProject(added.id);
   }
@@ -343,6 +394,7 @@ class AppController extends ChangeNotifier {
         for (final p in _projects) p.id == updated.id ? updated : p,
       ];
       await _saveProjects();
+      _pushProject(() => accounts.saveProject(updated));
     }
     if (updated.id == project?.id) {
       _ascAppId = null;
@@ -359,6 +411,7 @@ class AppController extends ChangeNotifier {
     } else {
       _projects = _projects.where((p) => p.id != id).toList();
       await _saveProjects();
+      _pushProject(() => accounts.deleteProject(id));
     }
     if (_selectedProjectId == id) {
       _selectedProjectId = null;
@@ -741,6 +794,7 @@ class AppController extends ChangeNotifier {
   @override
   void dispose() {
     _stopTicker();
+    _accountSub?.cancel();
     super.dispose();
   }
 }

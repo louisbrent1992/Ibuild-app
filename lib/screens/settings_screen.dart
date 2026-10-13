@@ -4,6 +4,7 @@ import '../app/app_controller.dart';
 import '../app/app_scope.dart';
 import '../app/theme.dart';
 import '../widgets/common.dart';
+import 'account_screen.dart';
 import 'project_setup_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -23,6 +24,27 @@ class SettingsScreen extends StatelessWidget {
                 ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -1),
           ),
           const SizedBox(height: 24),
+          GroupedPanel(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.account_circle_outlined),
+                title: Text(
+                  app.account == null
+                      ? 'Sign in or create an account'
+                      : app.account!.username ?? app.account!.email ?? 'Signed in',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(app.account == null
+                    ? 'Optional. Syncs your projects across devices.'
+                    : 'Projects sync to this account'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => const AccountScreen(),
+                )),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           GroupedPanel(
             children: [
               SwitchListTile(
