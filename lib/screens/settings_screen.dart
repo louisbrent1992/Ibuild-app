@@ -66,7 +66,7 @@ class SettingsScreen extends StatelessWidget {
                 title: const Text('Demo mode',
                     style: TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: const Text(
-                    'Explore with a pretend project. Nothing is sent to Codemagic, GitHub or Apple.'),
+                    'Explore with a pretend project. Nothing is sent to Codemagic, GitHub, Apple or Google.'),
               ),
             ],
           ),
@@ -91,6 +91,12 @@ class SettingsScreen extends StatelessWidget {
                 title: 'App Store Connect',
                 connected: app.hasAppStoreConnect,
                 purpose: 'Shows TestFlight processing and tester groups',
+              ),
+              _ConnectionRow(
+                connection: Connection.googlePlay,
+                title: 'Google Play',
+                connected: app.hasGooglePlay,
+                purpose: 'Shows Play releases and tester groups',
               ),
             ],
           ),
@@ -219,11 +225,16 @@ class _ConnectionEditorScreenState extends State<ConnectionEditorScreen> {
           'App Store Connect',
           'In App Store Connect, open Users and Access, then Integrations, and create a Team Key. Developer access can read builds; App Manager is needed to create public TestFlight links.',
         ),
+      Connection.googlePlay => (
+          'Google Play',
+          'In Google Cloud, create a service account and download a JSON key for it. Then in Play Console, open Users and permissions, invite the service account\'s email and give it access to your apps. iBuild only reads releases and testers; it never changes anything in Play.',
+        ),
     };
     final connected = switch (widget.connection) {
       Connection.codemagic => app.hasCodemagic,
       Connection.github => app.hasGitHub,
       Connection.appStoreConnect => app.hasAppStoreConnect,
+      Connection.googlePlay => app.hasGooglePlay,
     };
     final error = _error;
 
@@ -263,7 +274,23 @@ class _ConnectionEditorScreenState extends State<ConnectionEditorScreen> {
                     : '-----BEGIN PRIVATE KEY-----',
               ),
             ),
-          ] else
+          ] else if (widget.connection == Connection.googlePlay)
+            TextField(
+              controller: _token,
+              autocorrect: false,
+              enableSuggestions: false,
+              minLines: 4,
+              maxLines: 8,
+              style: monoStyle(size: 12),
+              decoration: fieldDecoration(
+                context,
+                'Service account key (.json file contents)',
+                hint: connected
+                    ? 'Saved. Paste a new key to replace it.'
+                    : '{"type": "service_account", ...}',
+              ),
+            )
+          else
             TextField(
               controller: _token,
               obscureText: _obscure,
@@ -336,6 +363,7 @@ class _ConnectionEditorScreenState extends State<ConnectionEditorScreen> {
             keyId: _keyId.text,
             privateKey: _privateKey.text,
           ),
+        Connection.googlePlay => await app.connectGooglePlay(_token.text),
       };
       messenger.showSnackBar(SnackBar(content: Text(message)));
       navigator.pop();

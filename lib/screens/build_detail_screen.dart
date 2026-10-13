@@ -85,7 +85,7 @@ class _BuildDetailScreenState extends State<BuildDetailScreen> {
 
     final snapshot = computePipeline(
       current,
-      testFlight: app.testFlightStateFor(current),
+      testFlight: app.storeStateFor(current),
       lastSeen: app.lastSeenStation(current.id),
       platform: app.project?.platform ?? AppPlatform.ios,
     );

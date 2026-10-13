@@ -62,11 +62,6 @@ class _TestFlightScreenState extends State<TestFlightScreen> {
 
     if (project == null) {
       children.add(const HintText('Add a project first.'));
-    } else if (project.platform == AppPlatform.android) {
-      children.add(const HintText(
-          'This is an Android workflow. Its builds go to Google Play as drafts, '
-          'which you roll out from Play Console. Pick an iOS workflow to see '
-          'TestFlight here.'));
     } else if (app.store == null) {
       children.add(const HintText(
           'Connect App Store Connect in Settings to see processing status and tester groups.'));

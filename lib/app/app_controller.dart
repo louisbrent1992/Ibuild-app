@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/build.dart';
 import '../models/pipeline.dart';
+import '../models/play.dart';
 import '../models/project.dart';
 import '../models/testflight.dart';
 import '../services/account_service.dart';
@@ -16,9 +17,10 @@ import '../services/ci_provider.dart';
 import '../services/codemagic_service.dart';
 import '../services/demo_world.dart';
 import '../services/github_service.dart';
+import '../services/google_play_service.dart';
 import '../services/yaml_parsing.dart';
 
-enum Connection { codemagic, github, appStoreConnect }
+enum Connection { codemagic, github, appStoreConnect, googlePlay }
 
 /// Holds credentials, projects and live build state for the whole app.
 class AppController extends ChangeNotifier {
@@ -53,6 +55,7 @@ class AppController extends ChangeNotifier {
   static const _kIssuer = 'asc_issuer_id';
   static const _kKeyId = 'asc_key_id';
   static const _kPrivateKey = 'asc_private_key';
+  static const _kPlayKey = 'play_service_account';
   static const _kProjects = 'projects';
   static const _kSelected = 'selected_project';
 
@@ -65,10 +68,12 @@ class AppController extends ChangeNotifier {
   String? _ascIssuerId;
   String? _ascKeyId;
   String? _ascPrivateKey;
+  String? _playKey;
 
   CiProvider? _ci;
   SourceHost? _source;
   StoreConnect? _store;
+  PlayConsole? _play;
 
   List<Project> _projects = [];
   Project _demoProject = DemoWorld.project;
@@ -96,6 +101,10 @@ class AppController extends ChangeNotifier {
   String? _ascAppId;
   String? _ascAppBundle;
 
+  PlaySnapshot? playSnapshot;
+  bool loadingPlay = false;
+  String? playError;
+
   List<BetaGroup> betaGroups = [];
   bool loadingBetaGroups = false;
   String? betaGroupsError;
@@ -121,10 +130,12 @@ class AppController extends ChangeNotifier {
       (_ascPrivateKey ?? '').isNotEmpty;
   String get ascIssuerId => _ascIssuerId ?? '';
   String get ascKeyId => _ascKeyId ?? '';
+  bool get hasGooglePlay => (_playKey ?? '').isNotEmpty;
 
   CiProvider? get ci => _demoMode ? _demo : _ci;
   SourceHost? get source => _demoMode ? _demo : _source;
   StoreConnect? get store => _demoMode ? _demo : _store;
+  PlayConsole? get play => _demoMode ? _demo : _play;
 
   List<Project> get projects => _demoMode
       ? [_demoProject, ..._demoExtras]
@@ -153,9 +164,25 @@ class AppController extends ChangeNotifier {
   bool _noTestFlight(Project? p) =>
       p == null || (p.bundleId ?? '').isEmpty || p.platform != AppPlatform.ios;
 
-  /// Matches a CI build to the first App Store Connect upload after it began.
-  TestFlightState testFlightStateFor(Build? build) {
+  bool _noPlay(Project? p) =>
+      p == null || (p.bundleId ?? '').isEmpty || p.platform != AppPlatform.android;
+
+  /// Where [build] stands in its store. iOS: the first App Store Connect
+  /// upload after it began. Android: the Play release holding its version code.
+  TestFlightState storeStateFor(Build? build) {
     final p = project;
+    if (p?.platform == AppPlatform.android) {
+      final snap = playSnapshot;
+      if (play == null || _noPlay(p)) return TestFlightState.notConfigured;
+      final code = build?.artefacts
+          .where((a) => a.versionCode != null)
+          .firstOrNull
+          ?.versionCode;
+      if (snap == null || code == null) return TestFlightState.unknown;
+      return snap.releaseFor(code) == null
+          ? TestFlightState.unknown
+          : TestFlightState.ready;
+    }
     if (store == null || _noTestFlight(p)) {
       return TestFlightState.notConfigured;
     }
@@ -180,6 +207,7 @@ class AppController extends ChangeNotifier {
       _ascIssuerId = values[_kIssuer];
       _ascKeyId = values[_kKeyId];
       _ascPrivateKey = values[_kPrivateKey];
+      _playKey = values[_kPlayKey];
       _selectedProjectId = values[_kSelected];
       final raw = values[_kProjects];
       if (raw != null) {
@@ -269,6 +297,12 @@ class AppController extends ChangeNotifier {
             privateKey: _ascPrivateKey!,
           )
         : null;
+    // A saved key that no longer parses leaves Play disconnected.
+    try {
+      _play = hasGooglePlay ? GooglePlayService(_playKey!) : null;
+    } on ApiException {
+      _play = null;
+    }
   }
 
   void _resetData() {
@@ -285,6 +319,8 @@ class AppController extends ChangeNotifier {
     testFlightError = null;
     betaGroups = [];
     betaGroupsError = null;
+    playSnapshot = null;
+    playError = null;
     _ascAppId = null;
     _ascAppBundle = null;
   }
@@ -365,6 +401,21 @@ class AppController extends ChangeNotifier {
     return 'Connected to App Store Connect.';
   }
 
+  Future<String> connectGooglePlay(String serviceAccountJson) async {
+    final value = serviceAccountJson.trim();
+    if (value.isEmpty) {
+      throw ApiException('Google Play', 'Paste your service account JSON key first.');
+    }
+    final service = GooglePlayService(value);
+    await service.verify();
+    _playKey = value;
+    await _write(_kPlayKey, value);
+    _rebuildServices();
+    notifyListeners();
+    unawaited(refreshPlay());
+    return 'Connected as ${service.clientEmail}.';
+  }
+
   Future<void> disconnect(Connection connection) async {
     switch (connection) {
       case Connection.codemagic:
@@ -380,6 +431,9 @@ class AppController extends ChangeNotifier {
         await _write(_kIssuer, null);
         await _write(_kKeyId, null);
         await _write(_kPrivateKey, null);
+      case Connection.googlePlay:
+        _playKey = null;
+        await _write(_kPlayKey, null);
     }
     _rebuildServices();
     _resetData();
@@ -479,7 +533,8 @@ class AppController extends ChangeNotifier {
   // ---------------------------------------------------------- Refreshing
 
   Future<void> refreshAll() async {
-    await Future.wait([refreshBuilds(), refreshVersion(), refreshTestFlight()]);
+    await Future.wait(
+        [refreshBuilds(), refreshVersion(), refreshTestFlight(), refreshPlay()]);
   }
 
   Future<void> refreshBuilds() async {
@@ -570,6 +625,31 @@ class AppController extends ChangeNotifier {
       loadingTestFlight = false;
       _updateTicker();
       if (notify) notifyListeners();
+    }
+  }
+
+  Future<void> refreshPlay() async {
+    final p = project;
+    final console = play;
+    if (p == null || console == null || _noPlay(p)) {
+      playSnapshot = null;
+      playError = null;
+      notifyListeners();
+      return;
+    }
+    final generation = _generation;
+    loadingPlay = true;
+    notifyListeners();
+    try {
+      final snap = await console.snapshot(p.bundleId!);
+      if (generation != _generation) return;
+      playSnapshot = snap;
+      playError = null;
+    } catch (e) {
+      if (generation == _generation) playError = e.toString();
+    } finally {
+      loadingPlay = false;
+      notifyListeners();
     }
   }
 
@@ -733,7 +813,10 @@ class AppController extends ChangeNotifier {
         previous.isInProgress &&
         !merged.isInProgress &&
         merged.status == BuildStatus.finished;
-    if (justFinished) unawaited(refreshTestFlight());
+    if (justFinished) {
+      unawaited(refreshTestFlight());
+      unawaited(refreshPlay());
+    }
   }
 
   /// True for a little while after a build passes, until Apple reports the
@@ -743,7 +826,7 @@ class AppController extends ChangeNotifier {
     if (store == null || _noTestFlight(p)) return false;
     final latest = latestBuild;
     if (latest == null || latest.status != BuildStatus.finished) return false;
-    final state = testFlightStateFor(latest);
+    final state = storeStateFor(latest);
     if (state == TestFlightState.processing) return true;
     final finished = latest.finishedAt;
     return state == TestFlightState.unknown &&

@@ -59,9 +59,10 @@ void main() {
   });
 
   group('Android', () {
-    test('a finished build has its Play draft done without TestFlight', () {
+    test('a finished build has its Play draft done without a Play connection', () {
       final snapshot = computePipeline(
         _build(BuildStatus.finished),
+        testFlight: TestFlightState.notConfigured,
         platform: AppPlatform.android,
       );
       expect(snapshot[Station.store], StationState.done);

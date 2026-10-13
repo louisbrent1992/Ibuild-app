@@ -149,6 +149,7 @@ class Artefact {
     required this.url,
     this.type,
     this.sizeBytes,
+    this.versionCode,
   });
 
   factory Artefact.fromJson(Map<String, dynamic> json) => Artefact(
@@ -156,12 +157,16 @@ class Artefact {
         url: _string(json, ['url', 'downloadUrl']) ?? '',
         type: _string(json, ['type']),
         sizeBytes: _int(json, ['size']),
+        versionCode: _int(json, ['versionCode', 'version_code']),
       );
 
   final String name;
   final String url;
   final String? type;
   final int? sizeBytes;
+
+  /// Android version code, which Codemagic reports for .aab and .apk files.
+  final int? versionCode;
 }
 
 class Build {

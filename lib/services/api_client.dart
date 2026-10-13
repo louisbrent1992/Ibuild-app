@@ -70,6 +70,9 @@ String describeFailure(String service, int status, String body) {
         detail = (first['detail'] ?? first['title'] ?? first['message'])
             ?.toString();
       }
+      // Google APIs nest it: {"error": {"code": 403, "message": "..."}}.
+      final error = decoded['error'];
+      if (error is Map) detail ??= error['message']?.toString();
       detail ??= (decoded['message'] ?? decoded['error'])?.toString();
     }
   } on FormatException {

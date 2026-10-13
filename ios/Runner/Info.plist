@@ -73,8 +73,12 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- Google sign-in returns here (REVERSED_CLIENT_ID in GoogleService-Info.plist). -->
+				<!-- Google and GitHub sign-in return here (REVERSED_CLIENT_ID in
+				     GoogleService-Info.plist). Without a registered scheme, Firebase raises an
+				     exception on provider sign-in and the app crashes. -->
 				<string>com.googleusercontent.apps.1014976306147-3h2hubn61mhoq3tntglqi48pumtg63vs</string>
+				<!-- Firebase's fallback scheme: the encoded GOOGLE_APP_ID. -->
+				<string>app-1-1014976306147-ios-4f8764c4b8f16a4a511ed6</string>
 			</array>
 		</dict>
 	</array>

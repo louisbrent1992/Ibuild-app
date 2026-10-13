@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../models/build.dart';
+import '../models/play.dart';
 import '../models/project.dart';
 import '../models/repo.dart';
 import '../models/testflight.dart';
@@ -9,6 +10,7 @@ import 'app_store_connect_service.dart';
 import 'ci_provider.dart';
 import 'config_generator.dart';
 import 'github_service.dart';
+import 'google_play_service.dart';
 import 'yaml_parsing.dart';
 
 /// A self-contained pretend Codemagic, GitHub and App Store Connect, so the
@@ -17,7 +19,7 @@ import 'yaml_parsing.dart';
 ///
 /// Builds on branches starting with `feature/` fail their tests on purpose,
 /// so the failure path can be seen too.
-class DemoWorld implements CiProvider, SourceHost, StoreConnect {
+class DemoWorld implements CiProvider, SourceHost, StoreConnect, PlayConsole {
   DemoWorld() {
     _seed();
   }
@@ -233,15 +235,24 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
       startedAt: elapsed >= 3 ? run.at(3) : null,
       finishedAt: done ? run.at(end) : null,
       steps: steps,
-      artefacts: status == BuildStatus.finished
-          ? const [
-              Artefact(
-                  name: 'Cookbook.ipa',
-                  url: 'demo://Cookbook.ipa',
-                  type: 'ipa',
-                  sizeBytes: 48213504),
-            ]
-          : const [],
+      artefacts: status != BuildStatus.finished
+          ? const []
+          : _isAndroid(run)
+              ? [
+                  Artefact(
+                      name: 'app-release.aab',
+                      url: 'demo://app-release.aab',
+                      type: 'aab',
+                      sizeBytes: 31457280,
+                      versionCode: run.number),
+                ]
+              : const [
+                  Artefact(
+                      name: 'Cookbook.ipa',
+                      url: 'demo://Cookbook.ipa',
+                      type: 'ipa',
+                      sizeBytes: 48213504),
+                ],
       message: run.message,
     );
   }
@@ -351,6 +362,38 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
   Future<List<BetaGroup>> betaGroups(String appId) async {
     await _pause();
     return _groups.values.toList();
+  }
+
+  static bool _isAndroid(_DemoRun run) =>
+      platformForWorkflow(run.workflowId) == AppPlatform.android;
+
+  @override
+  Future<PlaySnapshot> snapshot(String packageName) async {
+    await _pause();
+    final now = DateTime.now();
+    final built = _runs.values
+        .where((r) => _isAndroid(r) && !r.failsTests && !r.canceled && now.isAfter(r.at(_uploadDoneAt)))
+        .toList()
+      ..sort((a, b) => b.number.compareTo(a.number));
+    return PlaySnapshot(
+      releases: [
+        const PlayRelease(
+            track: 'production',
+            status: PlayReleaseStatus.completed,
+            name: '82 (2.4.0)',
+            versionCodes: [82]),
+        for (final run in built.take(3))
+          PlayRelease(
+            track: 'alpha',
+            status: PlayReleaseStatus.draft,
+            name: '${run.number} (${_versionFor(run.branch)})',
+            versionCodes: [run.number],
+          ),
+      ],
+      testerGroups: const {
+        'alpha': ['cookbook-testers@googlegroups.com'],
+      },
+    );
   }
 
   @override

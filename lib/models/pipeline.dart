@@ -8,7 +8,7 @@ enum Station {
   build('Build'),
   upload('Upload'),
 
-  /// TestFlight for iOS, a Google Play draft for Android.
+  /// TestFlight for iOS, a Google Play release for Android.
   store('Store');
 
   const Station(this.label);
@@ -24,6 +24,8 @@ enum Station {
 
 enum StationState { pending, active, done, failed, skipped }
 
+/// Where a finished build stands in its store: TestFlight for iOS, a Play
+/// release for Android (which has no processing step).
 enum TestFlightState { unknown, notConfigured, processing, ready, failed }
 
 /// Stations that the CI provider reports on (the store station comes after).
@@ -110,20 +112,17 @@ PipelineSnapshot computePipeline(
         states[s] = StationState.done;
       }
       if (!testsRan) states[Station.test] = StationState.skipped;
-      states[Station.store] = switch (platform) {
-        // Codemagic's publishing step creates the Play draft itself, so a
-        // finished Android build is already there; Play has no processing
-        // wait to poll for a draft.
-        // ponytail: assumes the workflow publishes to Play; read its
-        // publishing config if workflows without it become common.
-        AppPlatform.android => StationState.done,
-        AppPlatform.ios => switch (testFlight) {
-            TestFlightState.ready => StationState.done,
-            TestFlightState.processing => StationState.active,
-            TestFlightState.failed => StationState.failed,
-            TestFlightState.notConfigured => StationState.skipped,
-            TestFlightState.unknown => StationState.pending,
-          },
+      states[Station.store] = switch (testFlight) {
+        // Without a Play connection there is nothing to check. Codemagic's
+        // publishing step creates the Play release itself, so a finished
+        // Android build is assumed to be there.
+        TestFlightState.notConfigured when platform == AppPlatform.android =>
+          StationState.done,
+        TestFlightState.ready => StationState.done,
+        TestFlightState.processing => StationState.active,
+        TestFlightState.failed => StationState.failed,
+        TestFlightState.notConfigured => StationState.skipped,
+        TestFlightState.unknown => StationState.pending,
       };
     case BuildStatus.failed || BuildStatus.timeout:
       final failedStep = build.steps.where((s) => s.hasFailed).firstOrNull;

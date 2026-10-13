@@ -5,6 +5,7 @@ import '../app/app_scope.dart';
 import '../app/theme.dart';
 import '../models/build.dart';
 import '../models/pipeline.dart';
+import '../models/play.dart';
 import '../models/project.dart';
 import '../widgets/common.dart';
 import '../widgets/formatting.dart';
@@ -36,7 +37,7 @@ class DashboardScreen extends StatelessWidget {
     final lastFinished = app.builds.where((b) => !b.isInProgress).firstOrNull;
     final snapshot = computePipeline(
       latest,
-      testFlight: app.testFlightStateFor(latest),
+      testFlight: app.storeStateFor(latest),
       lastSeen: latest == null ? null : app.lastSeenStation(latest.id),
       platform: project.platform,
     );
@@ -102,11 +103,16 @@ class DashboardScreen extends StatelessWidget {
                       ? null
                       : () => openBuild(context, lastFinished.id),
                 ),
-                // Android builds go to a Play draft; TestFlight has nothing to say.
                 if (project.platform == AppPlatform.ios)
                   PanelRow(
                     label: 'TestFlight',
                     value: _testFlightText(app),
+                    onTap: onOpenTestFlight,
+                  )
+                else
+                  PanelRow(
+                    label: 'Google Play',
+                    value: _playText(app),
                     onTap: onOpenTestFlight,
                   ),
               ],
@@ -122,6 +128,17 @@ class DashboardScreen extends StatelessWidget {
     if (app.source == null) return 'Connect GitHub';
     if (app.loadingVersion && app.versionLabel == null) return 'Checking…';
     return app.versionLabel ?? 'No pubspec.yaml';
+  }
+
+  static String _playText(AppController app) {
+    if (app.play == null) return 'Connect Google Play';
+    if ((app.project?.bundleId ?? '').isEmpty) return 'Add a package name';
+    if (app.playError != null) return 'Could not load';
+    final releases = app.playSnapshot?.releases ?? const <PlayRelease>[];
+    if (releases.isEmpty) return app.loadingPlay ? 'Checking…' : 'No releases yet';
+    final latest = releases.reduce(
+        (a, b) => b.highestVersionCode > a.highestVersionCode ? b : a);
+    return '${playTrackLabel(latest.track)}: ${latest.statusLabel}';
   }
 
   static String _testFlightText(AppController app) {
