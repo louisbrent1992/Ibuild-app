@@ -25,11 +25,15 @@ The pipeline is drawn as a transit line: **Fetch → Test → Build → Upload �
 Requires Flutter 3.27 or newer (Dart 3.6+).
 
 ```bash
-./scripts/bootstrap.sh   # generates android/ and ios/, adds the INTERNET permission, runs pub get
+flutter pub get
 flutter run
 ```
 
-The repository keeps only `lib/`, `test/` and configuration; `bootstrap.sh` runs `flutter create .` to generate the platform folders so they always match your installed Flutter version. If you prefer to commit them, run the script once and commit the result.
+`android/` and `ios/` are committed (bundle ID and package name `com.adventhub.ibuild`). `scripts/bootstrap.sh` regenerates them if they are ever deleted.
+
+## Releasing iBuild
+
+`codemagic.yaml` builds both apps on every push to `main` and leaves drafts, never releases: the iOS build is uploaded to App Store Connect without being submitted, and the Android build lands on the Play production track as a draft. The variable groups it needs are listed at the top of the file.
 
 ## Connecting real accounts
 

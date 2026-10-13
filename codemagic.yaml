@@ -1,0 +1,107 @@
+# Release builds for iBuild (com.adventhub.ibuild).
+#
+# Both stores get drafts, never a release:
+#   iOS      uploaded to App Store Connect; not submitted to TestFlight or App
+#            Store review, so it waits there until a version is submitted.
+#   Android  uploaded to the Play production track as a draft; nothing reaches
+#            users until it is rolled out by hand in Play Console.
+#
+# Secrets live in this Codemagic app's variable groups (mark every value Secure):
+#   asc_credentials   APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID,
+#                     APP_STORE_CONNECT_PRIVATE_KEY (.p8 contents),
+#                     CERTIFICATE_PRIVATE_KEY (RSA key for the distribution certificate)
+#   android_signing   CM_KEYSTORE (base64 upload keystore), CM_KEYSTORE_PASSWORD,
+#                     CM_KEY_ALIAS, CM_KEY_PASSWORD
+#   play_publishing   GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (service account JSON)
+#
+# Build numbers use Codemagic's per-app counter, which only goes up, so they never
+# collide in either store. The version name comes from pubspec.yaml.
+
+definitions:
+  triggering: &main_push
+    events:
+      - push
+    branch_patterns:
+      - pattern: main
+        include: true
+    cancel_previous_builds: true
+
+workflows:
+  ios-release:
+    name: iOS release (App Store Connect draft)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.47.6
+      xcode: latest
+      cocoapods: default
+      groups:
+        - asc_credentials
+      vars:
+        BUNDLE_ID: com.adventhub.ibuild
+    triggering: *main_push
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Flutter tests
+        script: flutter test
+      - name: Install pods
+        script: cd ios && pod install --repo-update
+      - name: Signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build ipa
+        script: |
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: false
+        submit_to_app_store: false
+
+  android-release:
+    name: Android release (Play draft)
+    # Linux machines need a paid Codemagic plan; the Mac builds Android too.
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.47.6
+      groups:
+        - android_signing
+        - play_publishing
+    triggering: *main_push
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Flutter tests
+        script: flutter test
+      - name: Set up signing
+        # android/app/build.gradle.kts signs release builds from key.properties.
+        script: |
+          echo "$CM_KEYSTORE" | base64 --decode > /tmp/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storeFile=/tmp/upload-keystore.jks
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          keyPassword=$CM_KEY_PASSWORD
+          EOF
+      - name: Build Android App Bundle
+        script: flutter build appbundle --release --build-number=$BUILD_NUMBER
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: production
+        submit_as_draft: true

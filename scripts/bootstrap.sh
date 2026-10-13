@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if [ ! -d android ] || [ ! -d ios ]; then
-  flutter create . --project-name ibuild --org dev.ibuild --platforms android,ios
+  flutter create . --project-name ibuild --org com.adventhub --platforms android,ios
 fi
 
 # Release builds on Android need the INTERNET permission in the main manifest
