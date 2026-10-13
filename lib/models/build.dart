@@ -178,6 +178,7 @@ class Build {
     this.steps = const [],
     this.artefacts = const [],
     this.message,
+    this.statusMessage,
   });
 
   /// What we know about a build the moment Codemagic accepts it.
@@ -229,6 +230,9 @@ class Build {
           .where((a) => a.url.isNotEmpty)
           .toList(),
       message: _string(commit, ['commitMessage', 'message']),
+      // Codemagic's own reason, e.g. "The selected instance type is not
+      // available with the current billing plan."
+      statusMessage: _string(json, ['message', 'statusMessage', 'failureReason']),
     );
   }
 
@@ -243,7 +247,17 @@ class Build {
   final DateTime? finishedAt;
   final List<BuildStep> steps;
   final List<Artefact> artefacts;
+
+  /// The commit message.
   final String? message;
+
+  /// Why Codemagic stopped or refused the build, when it says.
+  final String? statusMessage;
+
+  /// True when Codemagic stopped the build over the account's plan (build
+  /// minutes, billing, a machine the plan does not include) rather than
+  /// anything in the code or in iBuild.
+  bool get hitPlanLimit => isCodemagicPlanLimit(statusMessage);
 
   bool get isInProgress =>
       status.isInProgress ||
@@ -273,5 +287,17 @@ class Build {
         steps: fresh.steps.isNotEmpty ? fresh.steps : steps,
         artefacts: fresh.artefacts.isNotEmpty ? fresh.artefacts : artefacts,
         message: fresh.message ?? message,
+        statusMessage: fresh.statusMessage ?? statusMessage,
       );
 }
+
+final _planLimit = RegExp(
+  r'billing|build minutes|out of minutes|minutes? (limit|quota)|quota|'
+  r'limit (reached|exceeded)|payment|upgrade your (plan|account)|'
+  r'(current|your) plan|free plan|trial (has )?(ended|expired)',
+  caseSensitive: false,
+);
+
+/// Whether a Codemagic message is about the account's plan or minutes.
+bool isCodemagicPlanLimit(String? text) =>
+    text != null && _planLimit.hasMatch(text);

@@ -126,6 +126,15 @@ class _BuildDetailScreenState extends State<BuildDetailScreen> {
             const SizedBox(height: 8),
             Text(message, style: theme.textTheme.bodyMedium),
           ],
+          if (current.hitPlanLimit) ...[
+            const SizedBox(height: 16),
+            PlanLimitNotice(detail: current.statusMessage),
+          ] else if (!current.isInProgress &&
+              current.status != BuildStatus.finished &&
+              (current.statusMessage ?? '').isNotEmpty) ...[
+            const SizedBox(height: 16),
+            ErrorNote(message: current.statusMessage!),
+          ],
           const SizedBox(height: 28),
           TransitLine(snapshot: snapshot),
           const SizedBox(height: 36),

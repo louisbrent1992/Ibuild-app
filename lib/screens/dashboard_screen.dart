@@ -55,6 +55,10 @@ class DashboardScreen extends StatelessWidget {
             _LineCaption(latest: latest),
             const SizedBox(height: 14),
             TransitLine(snapshot: snapshot),
+            if (latest != null && latest.hitPlanLimit) ...[
+              const SizedBox(height: 16),
+              PlanLimitNotice(detail: latest.statusMessage),
+            ],
             if (app.buildsError != null) ...[
               const SizedBox(height: 16),
               ErrorNote(message: app.buildsError!, onRetry: app.refreshBuilds),
@@ -312,6 +316,24 @@ class _BuildButton extends StatelessWidget {
         content: Text('${started.title} started on ${started.branch ?? app.branch}.'),
       ));
     } catch (e) {
+      // Codemagic refusing to start over the plan is not an iBuild error;
+      // say so plainly instead of flashing its raw message.
+      if (isCodemagicPlanLimit(e.toString()) && context.mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            contentPadding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+            content: PlanLimitNotice(detail: e.toString()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
       messenger.showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }

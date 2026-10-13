@@ -178,3 +178,56 @@ Future<void> openExternal(BuildContext context, Uri uri) async {
     messenger.showSnackBar(SnackBar(content: Text('Could not open ${uri.host}.')));
   }
 }
+
+final codemagicPlansUrl = Uri.parse('https://codemagic.io/pricing/');
+
+/// Shown when Codemagic stopped or refused a build over the account's plan,
+/// so it is clear the limit is Codemagic's, not iBuild's or the code's.
+class PlanLimitNotice extends StatelessWidget {
+  const PlanLimitNotice({super.key, this.detail});
+
+  /// Codemagic's own wording, shown under the explanation.
+  final String? detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+      decoration: BoxDecoration(
+        color: Palette.amber.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Palette.amber.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Icon(Icons.hourglass_bottom, color: Palette.amber, size: 20),
+            const SizedBox(width: 10),
+            Text('Codemagic plan limit',
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          ]),
+          const SizedBox(height: 8),
+          Text(
+            'Codemagic stopped this build because of your Codemagic plan, not because '
+            'of iBuild or your code. You may have used this month\'s build minutes, or '
+            'the workflow needs a machine your plan does not include. Builds run again '
+            'when your minutes reset or after you change plan in Codemagic.',
+            style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+          ),
+          if (detail != null && detail!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Codemagic says: $detail',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          ],
+          TextButton(
+            onPressed: () => openExternal(context, codemagicPlansUrl),
+            child: const Text('Codemagic plans'),
+          ),
+        ],
+      ),
+    );
+  }
+}
