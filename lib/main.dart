@@ -35,6 +35,17 @@ class IBuildApp extends StatelessWidget {
         theme: buildTheme(Brightness.light),
         darkTheme: buildTheme(Brightness.dark),
         home: const HomeShell(),
+        // Lists and buttons are designed for a phone column; on a tablet,
+        // keep them at a readable width instead of stretching edge to edge.
+        builder: (context, child) => ColoredBox(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: child,
+            ),
+          ),
+        ),
       ),
     );
   }

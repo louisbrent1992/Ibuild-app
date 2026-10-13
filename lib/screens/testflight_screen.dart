@@ -137,7 +137,7 @@ class _TestFlightScreenState extends State<TestFlightScreen> {
       title: 'Bundle ID',
       label: 'Bundle ID',
       initial: project.bundleId,
-      helper: 'For example com.recipease.app',
+      helper: 'For example com.cookbook.app',
     );
     if (value == null || value.isEmpty) return;
     await app.updateProject(project.copyWith(bundleId: value));

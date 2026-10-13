@@ -1,0 +1,1 @@
+Your builds, live on your phone: start a Codemagic build on any branch, follow every step, and see the moment it reaches TestFlight or Google Play.

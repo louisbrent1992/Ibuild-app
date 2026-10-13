@@ -22,17 +22,17 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
     _seed();
   }
 
-  static const recipeaseAppId = 'demo-recipease';
+  static const cookbookAppId = 'demo-cookbook';
   static const pantryAppId = 'demo-pantry';
 
   static const project = Project(
     id: 'demo',
-    name: 'RecipEase',
-    codemagicAppId: recipeaseAppId,
+    name: 'Cookbook',
+    codemagicAppId: cookbookAppId,
     workflowId: 'ios-testflight',
     branch: 'main',
-    repo: 'you/recipease',
-    bundleId: 'com.recipease.app',
+    repo: 'you/cookbook',
+    bundleId: 'com.cookbook.app',
   );
 
   static const _branches = ['main', 'develop', 'feature/meal-plans'];
@@ -60,7 +60,7 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
     const scale = 6.8;
     _runs['demo-84'] = _DemoRun(
         id: 'demo-84',
-        appId: recipeaseAppId,
+        appId: cookbookAppId,
         number: 84,
         branch: 'main',
         workflowId: 'ios-testflight',
@@ -69,7 +69,7 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
         scale: scale);
     _runs['demo-85'] = _DemoRun(
         id: 'demo-85',
-        appId: recipeaseAppId,
+        appId: cookbookAppId,
         number: 85,
         branch: 'feature/meal-plans',
         workflowId: 'ios-testflight',
@@ -79,7 +79,7 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
         scale: scale);
     _runs['demo-86'] = _DemoRun(
         id: 'demo-86',
-        appId: recipeaseAppId,
+        appId: cookbookAppId,
         number: 86,
         branch: 'main',
         workflowId: 'ios-testflight',
@@ -102,7 +102,7 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
   Future<List<CiApp>> listApps() async {
     await _pause();
     return const [
-      CiApp(id: recipeaseAppId, name: 'RecipEase', branches: _branches),
+      CiApp(id: cookbookAppId, name: 'Cookbook', branches: _branches),
       CiApp(id: pantryAppId, name: 'Pantry Scanner', branches: ['main']),
     ];
   }
@@ -236,8 +236,8 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
       artefacts: status == BuildStatus.finished
           ? const [
               Artefact(
-                  name: 'RecipEase.ipa',
-                  url: 'demo://RecipEase.ipa',
+                  name: 'Cookbook.ipa',
+                  url: 'demo://Cookbook.ipa',
                   type: 'ipa',
                   sizeBytes: 48213504),
             ]
@@ -255,7 +255,7 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
   Future<List<GitHubRepo>> listRepos() async {
     await _pause();
     return const [
-      GitHubRepo(fullName: 'you/recipease', defaultBranch: 'main', isPrivate: true),
+      GitHubRepo(fullName: 'you/cookbook', defaultBranch: 'main', isPrivate: true),
       GitHubRepo(fullName: 'you/pantry-scanner', defaultBranch: 'main'),
     ];
   }
@@ -263,7 +263,7 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
   @override
   Future<List<String>> listBranches(String repo) async {
     await _pause();
-    return repo == 'you/recipease' ? _branches : const ['main'];
+    return repo == 'you/cookbook' ? _branches : const ['main'];
   }
 
   @override
@@ -275,9 +275,9 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
     }
     if (path == 'codemagic.yaml') {
       return _written[repo] ??
-          (repo == 'you/recipease'
+          (repo == 'you/cookbook'
               ? generateCodemagicYaml(const ConfigOptions(
-                  ios: true, android: true, bundleId: 'com.recipease.app'))
+                  ios: true, android: true, bundleId: 'com.cookbook.app'))
               : null);
     }
     return null;
@@ -330,7 +330,7 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
     final now = DateTime.now();
     final list = <TestFlightBuild>[];
     for (final run in _runs.values) {
-      if (run.appId != recipeaseAppId || run.endAt < _uploadDoneAt) continue;
+      if (run.appId != cookbookAppId || run.endAt < _uploadDoneAt) continue;
       final uploadedAt = run.at(_uploadDoneAt);
       if (now.isBefore(uploadedAt)) continue;
       final processedAt =
@@ -434,7 +434,7 @@ const _plan = <_StepPlan>[
     'Build machine ready',
   ]),
   _StepPlan('Fetching app sources', 7.0, 9.0, [
-    'git clone --depth 50 git@github.com:you/recipease.git',
+    'git clone --depth 50 git@github.com:you/cookbook.git',
     'Checked out the requested branch',
     'HEAD is 4f2a9c1 Fix meal plan calorie rounding',
   ]),
@@ -459,20 +459,20 @@ const _plan = <_StepPlan>[
     '00:07 +43 -1: Some tests failed.',
   ]),
   _StepPlan('Set up code signing identities', 19.0, 22.0, [
-    'Fetching signing files for com.recipease.app',
-    'Using profile "RecipEase App Store"',
+    'Fetching signing files for com.cookbook.app',
+    'Using profile "Cookbook App Store"',
     'Keychain ready',
   ]),
   _StepPlan('Flutter build ipa', 22.0, 31.0, [
     'flutter build ipa --release',
     'Running pod install...',
-    'Archiving com.recipease.app...',
+    'Archiving com.cookbook.app...',
     'Built build/ios/archive/Runner.xcarchive (212.4MB)',
     'Building App Store IPA...',
     'Built IPA to build/ios/ipa (46.0MB)',
   ]),
   _StepPlan('Publishing to App Store Connect', 31.0, 37.0, [
-    'Uploading RecipEase.ipa to App Store Connect',
+    'Uploading Cookbook.ipa to App Store Connect',
     'Upload progress 48%',
     'Upload progress 100%',
     'Uploaded. Apple is now processing the build.',

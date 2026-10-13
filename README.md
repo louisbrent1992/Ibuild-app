@@ -18,7 +18,7 @@ The pipeline is drawn as a transit line: **Fetch → Test → Build → Upload �
 - **Tester groups.** List beta groups, create a public TestFlight invitation link, and copy it to share.
 - **Repository detection.** Pick a GitHub repo and iBuild checks for `pubspec.yaml`, `ios/`, `android/` and `codemagic.yaml`, then fills in the workflow and bundle ID it finds.
 - **Config generator.** No `codemagic.yaml` yet? Choose iOS, Android, and TestFlight, App Store or Ad Hoc distribution, preview the file, then copy it or commit it straight to the repo.
-- **Demo mode** (on by default) runs everything against a simulated RecipEase project so the whole app can be explored before connecting any account.
+- **Demo mode** (on by default) runs everything against a simulated Cookbook project so the whole app can be explored before connecting any account.
 
 ## Getting started
 

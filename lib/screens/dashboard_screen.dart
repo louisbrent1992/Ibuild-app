@@ -102,11 +102,13 @@ class DashboardScreen extends StatelessWidget {
                       ? null
                       : () => openBuild(context, lastFinished.id),
                 ),
-                PanelRow(
-                  label: 'TestFlight',
-                  value: _testFlightText(app),
-                  onTap: onOpenTestFlight,
-                ),
+                // Android builds go to a Play draft; TestFlight has nothing to say.
+                if (project.platform == AppPlatform.ios)
+                  PanelRow(
+                    label: 'TestFlight',
+                    value: _testFlightText(app),
+                    onTap: onOpenTestFlight,
+                  ),
               ],
             ),
           ],

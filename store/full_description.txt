@@ -1,0 +1,23 @@
+iBuild is a phone-first control panel for your mobile app builds. Start a build on any branch, watch it move through Fetch, Test, Build and Upload as it happens, and see when it reaches your testers, without opening a laptop.
+
+Your builds run on Codemagic; iBuild drives them from your phone.
+
+- Start, cancel and rerun builds on any branch and workflow
+- Follow every step live, with logs that keep scrolling while they run
+- See when an iOS build finishes processing in TestFlight, or when an Android build lands in Google Play as a draft
+- Know straight away when a build stopped because of your Codemagic plan, not your code
+- Download .ipa and .aab artifacts
+- Manage TestFlight tester groups and share public invitation links
+- Point iBuild at a GitHub repository and it detects your Flutter project, its platforms and its workflows
+- No codemagic.yaml yet? Generate one for iOS and Android, preview it, and commit it straight to your repository
+- An optional account keeps your projects in sync across your devices
+- Demo mode lets you explore everything before connecting anything
+
+Free includes demo mode and one project. iBuild Pro, a one-time purchase with no subscription, adds unlimited projects, committing codemagic.yaml to your repository, and TestFlight public links.
+
+Private by design: your access tokens stay in your device's secure storage and go only to Codemagic, GitHub and Apple. No analytics and no ads.
+
+Requires a Codemagic account. Build minutes and machines come from your Codemagic plan. GitHub and App Store Connect connections are optional.
+
+Terms of Use (EULA): https://adventhubsolutions.com/apps/ibuild/eula
+Privacy Policy: https://adventhubsolutions.com/apps/ibuild/privacy

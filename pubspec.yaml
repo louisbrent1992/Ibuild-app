@@ -25,6 +25,19 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
+# App icon: assets/brand/icon.svg rendered to PNG. Regenerate with
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: assets/brand/icon-1024.png
+  adaptive_icon_background: assets/brand/icon-bg.png
+  adaptive_icon_foreground: assets/brand/icon-fg.png
+  # icon-fg.png is already scaled into the safe zone; no second inset.
+  adaptive_icon_foreground_inset: 0

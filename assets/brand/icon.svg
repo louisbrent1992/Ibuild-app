@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3466F0"/>
+      <stop offset="1" stop-color="#14213D"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFB627" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FFB627" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- the build's line: along, then up to where it ships -->
+  <path d="M222 690 H470 L740 360" fill="none" stroke="#FFFFFF" stroke-width="70"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- stations passed -->
+  <circle cx="222" cy="690" r="62" fill="#FFFFFF"/>
+  <circle cx="222" cy="690" r="28" fill="#2F5BEA"/>
+  <circle cx="470" cy="690" r="62" fill="#FFFFFF"/>
+  <circle cx="470" cy="690" r="28" fill="#2F5BEA"/>
+  <!-- the station the build is at -->
+  <circle cx="740" cy="360" r="190" fill="url(#glow)"/>
+  <circle cx="740" cy="360" r="96" fill="#FFB627"/>
+  <circle cx="740" cy="360" r="44" fill="#FFFFFF"/>
+</svg>
