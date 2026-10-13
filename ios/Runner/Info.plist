@@ -82,5 +82,8 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Only HTTPS and the OS's own crypto: exempt, so uploads skip the export compliance question. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
