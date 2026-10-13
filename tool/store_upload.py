@@ -52,6 +52,23 @@ def files(rel):
     return sorted(os.path.join(path, f) for f in os.listdir(path) if f.endswith(".png"))
 
 
+def _retrying(method):
+    """requests.<method> that retries Google's and Apple's transient 5xx/429s."""
+    def call(*args, **kwargs):
+        for attempt in range(5):
+            r = method(*args, **kwargs)
+            if r.status_code < 500 and r.status_code != 429:
+                return r
+            time.sleep(4 * (attempt + 1))
+        return r
+    return call
+
+
+requests.get, requests.post, requests.put, requests.delete, requests.request = (
+    _retrying(requests.get), _retrying(requests.post), _retrying(requests.put),
+    _retrying(requests.delete), _retrying(requests.request))
+
+
 def ok(r):
     if not r.ok:
         raise SystemExit(f"{r.request.method} {r.url} -> {r.status_code}\n{r.text[:800]}")
