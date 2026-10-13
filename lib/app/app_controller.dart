@@ -49,6 +49,10 @@ class AppController extends ChangeNotifier {
   /// Last error from syncing projects with the account, if any.
   String? syncError;
 
+  /// A change on this device did not reach the account, so the next refresh
+  /// merges instead of taking the account's list as-is.
+  bool _pushFailed = false;
+
   static const _kDemo = 'demo_mode';
   static const _kCodemagic = 'codemagic_token';
   static const _kGitHub = 'github_token';
@@ -246,28 +250,49 @@ class AppController extends ChangeNotifier {
   }
 
   /// Merges this device's projects with the account's and saves the result
-  /// on both sides, so either one can be the new phone.
-  Future<void> _syncProjects() async {
+  /// on both sides, so either one can be the new phone. With [refresh], the
+  /// account's list wins (see [pulledProjects]).
+  Future<void> _syncProjects({bool refresh = false}) async {
+    final before = project?.id;
     try {
       final remote = await accounts.loadProjects();
       final remoteIds = {for (final p in remote) p.id: p.toJson().toString()};
-      _projects = mergeProjects(_projects, remote);
+      _projects = refresh
+          ? pulledProjects(_projects, remote, pushFailed: _pushFailed)
+          : mergeProjects(_projects, remote);
       await _saveProjects();
       for (final p in _projects) {
         if (remoteIds[p.id] != p.toJson().toString()) {
           await accounts.saveProject(p);
         }
       }
+      _pushFailed = false;
+      syncError = null;
     } catch (e) {
       syncError = 'Could not sync projects: $e';
     }
+    // The selected project was deleted elsewhere: show the next one fresh.
+    if (!_demoMode && project?.id != before) {
+      _resetData();
+      unawaited(refreshAll());
+    }
     notifyListeners();
+  }
+
+  /// Pulls Pro and the account's projects again, for changes made on another
+  /// device. Runs on pull-to-refresh in Settings and when the app resumes.
+  Future<void> refreshAccount() async {
+    await Future.wait([
+      pro.refresh(),
+      if (_account != null) _syncProjects(refresh: true),
+    ]);
   }
 
   /// Mirrors one project change to the account without holding up the UI.
   void _pushProject(Future<void> Function() change) {
     if (_account == null) return;
     unawaited(change().catchError((Object e) {
+      _pushFailed = true;
       syncError = 'Could not sync projects: $e';
       notifyListeners();
     }));

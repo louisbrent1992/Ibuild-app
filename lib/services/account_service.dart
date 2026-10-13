@@ -64,6 +64,14 @@ List<Project> mergeProjects(List<Project> local, List<Project> remote) {
   return byId.values.toList();
 }
 
+/// A refresh while signed in: the account is the source of truth, because
+/// every change on this device is pushed to it as it happens. Taking it as-is
+/// drops projects deleted on another device, which a merge would bring back.
+/// If a push failed, this device has changes the account lacks, so merge.
+List<Project> pulledProjects(List<Project> local, List<Project> remote,
+        {required bool pushFailed}) =>
+    pushFailed ? mergeProjects(local, remote) : remote;
+
 abstract class AccountService {
   Account? get current;
   Stream<Account?> changes();

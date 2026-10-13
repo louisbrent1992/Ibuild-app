@@ -17,139 +17,151 @@ class SettingsScreen extends StatelessWidget {
     final app = AppScope.of(context);
     final theme = Theme.of(context);
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        children: [
-          Text(
-            'Settings',
-            style: theme.textTheme.displaySmall
-                ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -1),
-          ),
-          const SizedBox(height: 24),
-          GroupedPanel(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.account_circle_outlined),
-                title: Text(
-                  app.account == null
-                      ? 'Sign in or create an account'
-                      : app.account!.username ?? app.account!.email ?? 'Signed in',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                subtitle: Text(app.account == null
-                    ? 'Optional. Syncs your projects across devices.'
-                    : 'Projects sync to this account'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                  builder: (_) => const AccountScreen(),
-                )),
-              ),
-              ListTile(
-                leading: Icon(app.isPro ? Icons.verified : Icons.lock_open_outlined),
-                title: Text(app.isPro ? 'iBuild Pro' : 'Unlock iBuild Pro',
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text(app.isPro
-                    ? 'Thank you for supporting iBuild'
-                    : 'Unlimited projects, config commits and tester tools'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                  builder: (_) => const ProScreen(),
-                )),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          GroupedPanel(
-            children: [
-              SwitchListTile(
-                value: app.demoMode,
-                onChanged: app.setDemoMode,
-                title: const Text('Demo mode',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: const Text(
-                    'Explore with a pretend project. Nothing is sent to Codemagic, GitHub, Apple or Google.'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
-          const SectionTitle('Connections'),
-          GroupedPanel(
-            children: [
-              _ConnectionRow(
-                connection: Connection.codemagic,
-                title: 'Codemagic',
-                connected: app.hasCodemagic,
-                purpose: 'Starts builds and shows their logs',
-              ),
-              _ConnectionRow(
-                connection: Connection.github,
-                title: 'GitHub',
-                connected: app.hasGitHub,
-                purpose: 'Reads branches, versions and codemagic.yaml',
-              ),
-              _ConnectionRow(
-                connection: Connection.appStoreConnect,
-                title: 'App Store Connect',
-                connected: app.hasAppStoreConnect,
-                purpose: 'Shows TestFlight processing and tester groups',
-              ),
-              _ConnectionRow(
-                connection: Connection.googlePlay,
-                title: 'Google Play',
-                connected: app.hasGooglePlay,
-                purpose: 'Shows Play releases and tester groups',
-              ),
-            ],
-          ),
-          if (app.demoMode && (app.hasCodemagic || app.hasGitHub)) ...[
-            const SizedBox(height: 8),
-            const HintText('Turn off demo mode to use your connected accounts.'),
-          ],
-          const SizedBox(height: 28),
-          SectionTitle(app.demoMode ? 'Demo projects' : 'Projects'),
-          GroupedPanel(
-            children: [
-              for (final p in app.projects)
+      child: RefreshIndicator(
+        onRefresh: app.refreshAccount,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: [
+            Text(
+              'Settings',
+              style: theme.textTheme.displaySmall
+                  ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -1),
+            ),
+            const SizedBox(height: 24),
+            GroupedPanel(
+              children: [
                 ListTile(
-                  title: Text(p.name,
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text('${p.workflowId} on ${p.branch}'),
+                  leading: const Icon(Icons.account_circle_outlined),
+                  title: Text(
+                    app.account == null
+                        ? 'Sign in or create an account'
+                        : app.account!.username ??
+                            app.account!.email ??
+                            'Signed in',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(app.account == null
+                      ? 'Optional. Syncs your projects across devices.'
+                      : 'Projects and Pro sync to this account. Pull down to refresh.'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                    builder: (_) => ProjectSetupScreen(existing: p),
+                  onTap: () =>
+                      Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (_) => const AccountScreen(),
                   )),
                 ),
-              ListTile(
-                leading: const Icon(Icons.add),
-                title: const Text('Add project'),
-                onTap: () => openNewProject(context),
-              ),
+                ListTile(
+                  leading: Icon(
+                      app.isPro ? Icons.verified : Icons.lock_open_outlined),
+                  title: Text(app.isPro ? 'iBuild Pro' : 'Unlock iBuild Pro',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(app.isPro
+                      ? 'Thank you for supporting iBuild'
+                      : 'Unlimited projects, config commits and tester tools'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () =>
+                      Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (_) => const ProScreen(),
+                  )),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            GroupedPanel(
+              children: [
+                SwitchListTile(
+                  value: app.demoMode,
+                  onChanged: app.setDemoMode,
+                  title: const Text('Demo mode',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: const Text(
+                      'Explore with a pretend project. Nothing is sent to Codemagic, GitHub, Apple or Google.'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            const SectionTitle('Connections'),
+            GroupedPanel(
+              children: [
+                _ConnectionRow(
+                  connection: Connection.codemagic,
+                  title: 'Codemagic',
+                  connected: app.hasCodemagic,
+                  purpose: 'Starts builds and shows their logs',
+                ),
+                _ConnectionRow(
+                  connection: Connection.github,
+                  title: 'GitHub',
+                  connected: app.hasGitHub,
+                  purpose: 'Reads branches, versions and codemagic.yaml',
+                ),
+                _ConnectionRow(
+                  connection: Connection.appStoreConnect,
+                  title: 'App Store Connect',
+                  connected: app.hasAppStoreConnect,
+                  purpose: 'Shows TestFlight processing and tester groups',
+                ),
+                _ConnectionRow(
+                  connection: Connection.googlePlay,
+                  title: 'Google Play',
+                  connected: app.hasGooglePlay,
+                  purpose: 'Shows Play releases and tester groups',
+                ),
+              ],
+            ),
+            if (app.demoMode && (app.hasCodemagic || app.hasGitHub)) ...[
+              const SizedBox(height: 8),
+              const HintText(
+                  'Turn off demo mode to use your connected accounts.'),
             ],
-          ),
-          const SizedBox(height: 28),
-          const SectionTitle('Help'),
-          GroupedPanel(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.menu_book_outlined),
-                title: const Text('Guide',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: const Text('Every screen, and where to find each key'),
-                trailing: const Icon(Icons.open_in_new),
-                onTap: () => openExternal(context, guideUrl()),
-              ),
-              ListTile(
-                leading: const Icon(Icons.slideshow_outlined),
-                title: const Text('Show intro again',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                onTap: () => showIntro(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
-          const HintText(
-              'Tokens and keys are kept in the iOS Keychain or Android Keystore on this device and are only sent to the service they belong to.'),
-        ],
+            const SizedBox(height: 28),
+            SectionTitle(app.demoMode ? 'Demo projects' : 'Projects'),
+            GroupedPanel(
+              children: [
+                for (final p in app.projects)
+                  ListTile(
+                    title: Text(p.name,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text('${p.workflowId} on ${p.branch}'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () =>
+                        Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (_) => ProjectSetupScreen(existing: p),
+                    )),
+                  ),
+                ListTile(
+                  leading: const Icon(Icons.add),
+                  title: const Text('Add project'),
+                  onTap: () => openNewProject(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            const SectionTitle('Help'),
+            GroupedPanel(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.menu_book_outlined),
+                  title: const Text('Guide',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle:
+                      const Text('Every screen, and where to find each key'),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () => openExternal(context, guideUrl()),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.slideshow_outlined),
+                  title: const Text('Show intro again',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  onTap: () => showIntro(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            const HintText(
+                'Tokens and keys are kept in the iOS Keychain or Android Keystore on this device and are only sent to the service they belong to.'),
+          ],
+        ),
       ),
     );
   }
@@ -268,12 +280,14 @@ class _ConnectionEditorScreenState extends State<ConnectionEditorScreen> {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-              onPressed: () => openExternal(context, guideUrl(switch (widget.connection) {
-                Connection.codemagic => 'connect-codemagic',
-                Connection.github => 'connect-github',
-                Connection.appStoreConnect => 'connect-app-store-connect',
-                Connection.googlePlay => 'connect-google-play',
-              })),
+              onPressed: () => openExternal(
+                  context,
+                  guideUrl(switch (widget.connection) {
+                    Connection.codemagic => 'connect-codemagic',
+                    Connection.github => 'connect-github',
+                    Connection.appStoreConnect => 'connect-app-store-connect',
+                    Connection.googlePlay => 'connect-google-play',
+                  })),
               icon: const Icon(Icons.menu_book_outlined, size: 18),
               label: const Text('Step-by-step guide'),
             ),
@@ -339,7 +353,8 @@ class _ConnectionEditorScreenState extends State<ConnectionEditorScreen> {
               ).copyWith(
                 suffixIcon: IconButton(
                   tooltip: _obscure ? 'Show token' : 'Hide token',
-                  icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                  icon:
+                      Icon(_obscure ? Icons.visibility : Icons.visibility_off),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),

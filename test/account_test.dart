@@ -18,6 +18,7 @@ Project _p(String id, {String branch = 'main'}) => Project(
 class _FakeAccounts implements AccountService {
   final _events = StreamController<Account?>.broadcast();
   final Map<String, Project> remote = {};
+  bool failSaves = false;
   Account? _current;
 
   void signInAs(String uid) {
@@ -32,7 +33,10 @@ class _FakeAccounts implements AccountService {
   @override
   Future<List<Project>> loadProjects() async => remote.values.toList();
   @override
-  Future<void> saveProject(Project project) async => remote[project.id] = project;
+  Future<void> saveProject(Project project) async {
+    if (failSaves) throw Exception('offline');
+    remote[project.id] = project;
+  }
   @override
   Future<void> deleteProject(String id) async => remote.remove(id);
   @override
@@ -94,6 +98,33 @@ void main() {
       expect(app.account, isNull);
       expect(app.projects.map((p) => p.id), ['local'],
           reason: 'signing out keeps the device copy');
+    });
+
+    test('refreshing takes the account\'s list, unless a push failed', () async {
+      final accounts = _FakeAccounts()
+        ..remote['a'] = _p('a')
+        ..remote['b'] = _p('b');
+      final app = AppController(accounts: accounts);
+      await app.load();
+      accounts.signInAs('u1');
+      await pumpEventQueue();
+
+      // Deleted and added on another device.
+      accounts.remote.remove('b');
+      accounts.remote['c'] = _p('c');
+      await app.refreshAccount();
+      expect(app.projects.map((p) => p.id).toSet(), {'a', 'c'});
+      expect(accounts.remote.keys.toSet(), {'a', 'c'},
+          reason: 'the deleted project is not pushed back');
+
+      // Offline here: the new project never reached the account.
+      accounts.failSaves = true;
+      await app.addProject(_p('d'));
+      await pumpEventQueue();
+      accounts.failSaves = false;
+      await app.refreshAccount();
+      expect(app.projects.map((p) => p.id).toSet(), {'a', 'c', 'd'});
+      expect(accounts.remote.containsKey('d'), isTrue);
     });
   });
 }

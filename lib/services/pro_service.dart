@@ -44,6 +44,9 @@ abstract class ProService {
   Future<void> purchase();
   Future<void> restore();
 
+  /// Re-reads Pro from the server, for a purchase made on another device.
+  Future<void> refresh();
+
   /// Ties purchases to the signed-in account so Pro follows the user to any
   /// device, or back to an anonymous ID when they sign out.
   Future<void> identify(String? uid);
@@ -123,6 +126,17 @@ class RevenueCatPro implements ProService {
   }
 
   @override
+  Future<void> refresh() async {
+    try {
+      // getCustomerInfo serves a cache for up to five minutes otherwise.
+      await Purchases.invalidateCustomerInfoCache();
+      _apply(await Purchases.getCustomerInfo());
+    } catch (e) {
+      debugPrint('Could not refresh Pro: $e');
+    }
+  }
+
+  @override
   Future<void> identify(String? uid) async {
     try {
       final info = uid == null
@@ -150,6 +164,8 @@ class NoPro implements ProService {
   @override
   Future<void> restore() async =>
       throw const ProException('Purchases are not available on this device.');
+  @override
+  Future<void> refresh() async {}
   @override
   Future<void> identify(String? uid) async {}
 }
