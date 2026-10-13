@@ -4,13 +4,26 @@ import '../app/app_controller.dart';
 import '../app/app_scope.dart';
 import '../app/theme.dart';
 import '../models/project.dart';
+import '../services/pro_service.dart';
 import '../models/repo.dart';
 import '../models/pipeline.dart';
 import '../services/ci_provider.dart';
 import '../widgets/common.dart';
 import '../widgets/transit_line.dart';
 import 'config_generator_screen.dart';
+import 'pro_screen.dart';
 import 'pickers.dart';
+
+/// Opens project setup, or the paywall first when a free account already
+/// has its one real project.
+Future<void> openNewProject(BuildContext context) async {
+  final app = AppScope.read(context);
+  if (!app.canAddProject && !await requirePro(context, ProFeature.projects)) return;
+  if (!context.mounted) return;
+  await Navigator.of(context).push(MaterialPageRoute<void>(
+    builder: (_) => const ProjectSetupScreen(),
+  ));
+}
 
 class ProjectSetupScreen extends StatefulWidget {
   const ProjectSetupScreen({super.key, this.existing});

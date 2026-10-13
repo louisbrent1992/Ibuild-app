@@ -9,6 +9,7 @@ import '../models/pipeline.dart';
 import '../models/project.dart';
 import '../models/testflight.dart';
 import '../services/account_service.dart';
+import '../services/pro_service.dart';
 import '../services/api_client.dart';
 import '../services/app_store_connect_service.dart';
 import '../services/ci_provider.dart';
@@ -21,12 +22,21 @@ enum Connection { codemagic, github, appStoreConnect }
 
 /// Holds credentials, projects and live build state for the whole app.
 class AppController extends ChangeNotifier {
-  AppController({FlutterSecureStorage? storage, AccountService? accounts})
+  AppController({
+    FlutterSecureStorage? storage,
+    AccountService? accounts,
+    ProService? pro,
+  })
       : _storage = storage ??
             const FlutterSecureStorage(
               aOptions: AndroidOptions(encryptedSharedPreferences: true),
             ),
-        accounts = accounts ?? const NoAccounts();
+        accounts = accounts ?? const NoAccounts(),
+        pro = pro ?? const NoPro();
+
+  /// The one-time Pro unlock.
+  final ProService pro;
+  StreamSubscription<bool>? _proSub;
 
   /// Optional sign-in. An account carries the user's identity and their
   /// saved projects; connection tokens never leave the device.
@@ -98,6 +108,11 @@ class AppController extends ChangeNotifier {
 
   bool get demoMode => _demoMode;
   Account? get account => _account;
+  bool get isPro => pro.isPro;
+
+  /// Free covers demo mode and one real project; Pro removes the limit.
+  bool get canAddProject => fitsFreeTier(
+      isPro: isPro, demoMode: _demoMode, projects: _projects.length);
   bool get hasCodemagic => (_codemagicToken ?? '').isNotEmpty;
   bool get hasGitHub => (_githubToken ?? '').isNotEmpty;
   bool get hasAppStoreConnect =>
@@ -183,13 +198,17 @@ class AppController extends ChangeNotifier {
     notifyListeners();
     unawaited(refreshAll());
     _accountSub = accounts.changes().listen(_onAccount);
+    _proSub = pro.changes().listen((_) => notifyListeners());
   }
 
   Future<void> _onAccount(Account? next) async {
     final signedIn = _account?.uid != next?.uid && next != null;
+    final changedUser = _account?.uid != next?.uid;
     _account = next;
     syncError = null;
     notifyListeners();
+    // Pro belongs to the account, so it follows the user to any device.
+    if (changedUser) unawaited(pro.identify(next?.uid));
     if (signedIn) await _syncProjects();
   }
 
@@ -795,6 +814,7 @@ class AppController extends ChangeNotifier {
   void dispose() {
     _stopTicker();
     _accountSub?.cancel();
+    _proSub?.cancel();
     super.dispose();
   }
 }

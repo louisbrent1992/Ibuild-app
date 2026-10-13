@@ -5,6 +5,8 @@ import '../app/app_scope.dart';
 import '../app/theme.dart';
 import '../services/config_generator.dart';
 import '../widgets/common.dart';
+import '../services/pro_service.dart';
+import 'pro_screen.dart';
 
 /// Builds a codemagic.yaml from a few choices and commits it to the repo.
 class ConfigGeneratorScreen extends StatefulWidget {
@@ -193,6 +195,7 @@ class _ConfigGeneratorScreenState extends State<ConfigGeneratorScreen> {
   }
 
   Future<void> _commit(String repo, String yaml) async {
+    if (!await requirePro(context, ProFeature.commitConfig) || !mounted) return;
     final source = AppScope.read(context).source;
     if (source == null) return;
     final messenger = ScaffoldMessenger.of(context);

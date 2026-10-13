@@ -10,6 +10,8 @@ import '../widgets/common.dart';
 import '../widgets/formatting.dart';
 import '../widgets/transit_line.dart';
 import 'pickers.dart';
+import '../services/pro_service.dart';
+import 'pro_screen.dart';
 
 class TestFlightScreen extends StatefulWidget {
   const TestFlightScreen({super.key});
@@ -248,6 +250,7 @@ class _GroupRowState extends State<_GroupRow> {
   }
 
   Future<void> _createLink() async {
+    if (!await requirePro(context, ProFeature.testers) || !mounted) return;
     final app = AppScope.read(context);
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);

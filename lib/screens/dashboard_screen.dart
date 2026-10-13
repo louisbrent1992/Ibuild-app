@@ -379,11 +379,7 @@ class _NoProject extends StatelessWidget {
               )
             else
               FilledButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ProjectSetupScreen(),
-                  ),
-                ),
+                onPressed: () => openNewProject(context),
                 child: const Text('Add project'),
               ),
           ],

@@ -5,6 +5,7 @@ import '../app/app_scope.dart';
 import '../app/theme.dart';
 import '../widgets/common.dart';
 import 'account_screen.dart';
+import 'pro_screen.dart';
 import 'project_setup_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -40,6 +41,18 @@ class SettingsScreen extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
                   builder: (_) => const AccountScreen(),
+                )),
+              ),
+              ListTile(
+                leading: Icon(app.isPro ? Icons.verified : Icons.lock_open_outlined),
+                title: Text(app.isPro ? 'iBuild Pro' : 'Unlock iBuild Pro',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(app.isPro
+                    ? 'Thank you for supporting iBuild'
+                    : 'Unlimited projects, config commits and tester tools'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => const ProScreen(),
                 )),
               ),
             ],
@@ -102,9 +115,7 @@ class SettingsScreen extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.add),
                 title: const Text('Add project'),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                  builder: (_) => const ProjectSetupScreen(),
-                )),
+                onTap: () => openNewProject(context),
               ),
             ],
           ),

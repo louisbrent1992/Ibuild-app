@@ -42,9 +42,7 @@ Future<void> showProjectSheet(BuildContext context) {
               title: const Text('Add project'),
               onTap: () {
                 Navigator.pop(sheetContext);
-                Navigator.of(context).push(MaterialPageRoute<void>(
-                  builder: (_) => const ProjectSetupScreen(),
-                ));
+                openNewProject(context);
               },
             ),
             const SizedBox(height: 8),
