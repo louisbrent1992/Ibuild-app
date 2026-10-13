@@ -6,6 +6,7 @@ import '../app/theme.dart';
 import '../widgets/common.dart';
 import 'account_screen.dart';
 import 'pro_screen.dart';
+import 'intro_screen.dart';
 import 'project_setup_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -122,6 +123,26 @@ class SettingsScreen extends StatelessWidget {
                 leading: const Icon(Icons.add),
                 title: const Text('Add project'),
                 onTap: () => openNewProject(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+          const SectionTitle('Help'),
+          GroupedPanel(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.menu_book_outlined),
+                title: const Text('Guide',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: const Text('Every screen, and where to find each key'),
+                trailing: const Icon(Icons.open_in_new),
+                onTap: () => openExternal(context, guideUrl()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.slideshow_outlined),
+                title: const Text('Show intro again',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                onTap: () => showIntro(context),
               ),
             ],
           ),
@@ -244,7 +265,20 @@ class _ConnectionEditorScreenState extends State<ConnectionEditorScreen> {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
           HintText(intro),
-          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => openExternal(context, guideUrl(switch (widget.connection) {
+                Connection.codemagic => 'connect-codemagic',
+                Connection.github => 'connect-github',
+                Connection.appStoreConnect => 'connect-app-store-connect',
+                Connection.googlePlay => 'connect-google-play',
+              })),
+              icon: const Icon(Icons.menu_book_outlined, size: 18),
+              label: const Text('Step-by-step guide'),
+            ),
+          ),
+          const SizedBox(height: 8),
           if (widget.connection == Connection.appStoreConnect) ...[
             TextField(
               controller: _issuer,

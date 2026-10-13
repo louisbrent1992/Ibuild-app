@@ -5,6 +5,7 @@ import '../models/project.dart';
 
 import 'dashboard_screen.dart';
 import 'history_screen.dart';
+import 'intro_screen.dart';
 import 'play_screen.dart';
 import 'settings_screen.dart';
 import 'testflight_screen.dart';
@@ -18,6 +19,14 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showIntroOnce(context);
+    });
+  }
 
   void _go(int index) => setState(() => _index = index);
 

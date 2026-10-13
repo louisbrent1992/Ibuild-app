@@ -161,8 +161,8 @@ class _ProjectSetupScreenState extends State<ProjectSetupScreen> {
             autocorrect: false,
             decoration: fieldDecoration(
               context,
-              'Bundle ID (optional)',
-              helper: 'iOS: finds the app in App Store Connect, for example com.cookbook.app. Not used for Android workflows.',
+              'Bundle ID or package name (optional)',
+              helper: 'Finds the app in App Store Connect (iOS) or Google Play (Android), for example com.cookbook.app.',
             ),
           ),
           const SizedBox(height: 28),

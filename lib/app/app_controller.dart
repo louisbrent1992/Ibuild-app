@@ -56,6 +56,7 @@ class AppController extends ChangeNotifier {
   static const _kKeyId = 'asc_key_id';
   static const _kPrivateKey = 'asc_private_key';
   static const _kPlayKey = 'play_service_account';
+  static const _kIntro = 'intro_seen';
   static const _kProjects = 'projects';
   static const _kSelected = 'selected_project';
 
@@ -112,6 +113,9 @@ class AppController extends ChangeNotifier {
   Timer? _ticker;
   int _ticks = 0;
   bool _polling = false;
+
+  /// False until the first-launch intro has been shown once.
+  bool introSeen = true;
 
   // ------------------------------------------------------------ Reading
 
@@ -202,6 +206,7 @@ class AppController extends ChangeNotifier {
     try {
       final values = await _storage.readAll();
       _demoMode = values[_kDemo] != 'false';
+      introSeen = values[_kIntro] == 'true';
       _codemagicToken = values[_kCodemagic];
       _githubToken = values[_kGitHub];
       _ascIssuerId = values[_kIssuer];
@@ -338,6 +343,11 @@ class AppController extends ChangeNotifier {
 
   /// Checks the token with Codemagic before saving it. Returns a short
   /// confirmation, or throws [ApiException].
+  Future<void> markIntroSeen() async {
+    introSeen = true;
+    await _write(_kIntro, 'true');
+  }
+
   Future<String> connectCodemagic(String token) async {
     final value = token.trim();
     if (value.isEmpty) {
