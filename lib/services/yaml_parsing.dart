@@ -7,11 +7,34 @@ class PubspecInfo {
 }
 
 class CodemagicInfo {
-  const CodemagicInfo({this.workflows = const [], this.bundleId});
+  const CodemagicInfo({
+    this.workflows = const [],
+    this.androidWorkflows = const {},
+    this.bundleId,
+  });
 
   /// Workflow keys, which are what the Codemagic API calls `workflowId`.
   final List<String> workflows;
+
+  /// The subset of [workflows] that build Android rather than iOS.
+  final Set<String> androidWorkflows;
   final String? bundleId;
+}
+
+/// Whether a workflow builds Android: it signs or publishes for Android,
+/// builds an App Bundle / APK, or says so in its key.
+bool _isAndroidWorkflow(String key, Map workflow) {
+  final environment = workflow['environment'];
+  final publishing = workflow['publishing'];
+  if (environment is Map && environment['android_signing'] != null) return true;
+  if (publishing is Map && publishing['google_play'] != null) return true;
+  final scripts = workflow['scripts'];
+  if (scripts is List &&
+      scripts.any((s) =>
+          RegExp(r'flutter build (appbundle|apk)').hasMatch(s.toString()))) {
+    return true;
+  }
+  return key.toLowerCase().contains('android');
 }
 
 PubspecInfo parsePubspec(String source) {
@@ -41,8 +64,13 @@ CodemagicInfo parseCodemagicYaml(String source) {
     final workflows = doc['workflows'];
     if (workflows is! Map) return const CodemagicInfo();
     String? bundleId;
-    for (final workflow in workflows.values) {
+    final android = <String>{};
+    for (final entry in workflows.entries) {
+      final workflow = entry.value;
       if (workflow is! Map) continue;
+      if (_isAndroidWorkflow(entry.key.toString(), workflow)) {
+        android.add(entry.key.toString());
+      }
       final environment = workflow['environment'];
       if (environment is! Map) continue;
       final signing = environment['ios_signing'];
@@ -56,6 +84,7 @@ CodemagicInfo parseCodemagicYaml(String source) {
     }
     return CodemagicInfo(
       workflows: workflows.keys.map((k) => k.toString()).toList(),
+      androidWorkflows: android,
       bundleId: bundleId,
     );
   } on Exception {

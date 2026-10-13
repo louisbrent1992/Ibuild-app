@@ -1,4 +1,5 @@
 import 'build.dart';
+import 'project.dart';
 
 /// The stations on the line a build travels, from source to testers.
 enum Station {
@@ -6,17 +7,26 @@ enum Station {
   test('Test'),
   build('Build'),
   upload('Upload'),
-  testFlight('TestFlight');
+
+  /// TestFlight for iOS, a Google Play draft for Android.
+  store('Store');
 
   const Station(this.label);
   final String label;
+
+  String labelFor(AppPlatform platform) => this != store
+      ? label
+      : switch (platform) {
+          AppPlatform.ios => 'TestFlight',
+          AppPlatform.android => 'Play',
+        };
 }
 
 enum StationState { pending, active, done, failed, skipped }
 
 enum TestFlightState { unknown, notConfigured, processing, ready, failed }
 
-/// Stations that the CI provider reports on (TestFlight comes from Apple).
+/// Stations that the CI provider reports on (the store station comes after).
 const ciStations = [Station.fetch, Station.test, Station.build, Station.upload];
 
 Station? stationForStatus(BuildStatus status) => switch (status) {
@@ -43,9 +53,11 @@ Station stationForStep(String stepName) {
 }
 
 class PipelineSnapshot {
-  const PipelineSnapshot(this.states, {this.waiting = false});
+  const PipelineSnapshot(this.states,
+      {this.waiting = false, this.platform = AppPlatform.ios});
 
   final Map<Station, StationState> states;
+  final AppPlatform platform;
 
   /// True while the build is queued and no machine has picked it up.
   final bool waiting;
@@ -58,9 +70,12 @@ PipelineSnapshot computePipeline(
   Build? build, {
   TestFlightState testFlight = TestFlightState.unknown,
   Station? lastSeen,
+  AppPlatform platform = AppPlatform.ios,
 }) {
   final states = {for (final s in Station.values) s: StationState.pending};
-  if (build == null) return PipelineSnapshot(states);
+  PipelineSnapshot snap({bool waiting = false}) =>
+      PipelineSnapshot(states, waiting: waiting, platform: platform);
+  if (build == null) return snap();
 
   final stepStations = build.steps.map((s) => stationForStep(s.name)).toSet();
   final testsRan = build.steps.isEmpty || stepStations.contains(Station.test);
@@ -84,9 +99,9 @@ PipelineSnapshot computePipeline(
     final runningStep = build.steps.where((s) => s.isRunning).firstOrNull;
     final current = stationForStatus(build.status) ??
         (runningStep == null ? null : stationForStep(runningStep.name));
-    if (current == null) return PipelineSnapshot(states, waiting: true);
+    if (current == null) return snap(waiting: true);
     markThrough(current, StationState.active, StationState.pending);
-    return PipelineSnapshot(states);
+    return snap();
   }
 
   switch (build.status) {
@@ -95,12 +110,20 @@ PipelineSnapshot computePipeline(
         states[s] = StationState.done;
       }
       if (!testsRan) states[Station.test] = StationState.skipped;
-      states[Station.testFlight] = switch (testFlight) {
-        TestFlightState.ready => StationState.done,
-        TestFlightState.processing => StationState.active,
-        TestFlightState.failed => StationState.failed,
-        TestFlightState.notConfigured => StationState.skipped,
-        TestFlightState.unknown => StationState.pending,
+      states[Station.store] = switch (platform) {
+        // Codemagic's publishing step creates the Play draft itself, so a
+        // finished Android build is already there; Play has no processing
+        // wait to poll for a draft.
+        // ponytail: assumes the workflow publishes to Play; read its
+        // publishing config if workflows without it become common.
+        AppPlatform.android => StationState.done,
+        AppPlatform.ios => switch (testFlight) {
+            TestFlightState.ready => StationState.done,
+            TestFlightState.processing => StationState.active,
+            TestFlightState.failed => StationState.failed,
+            TestFlightState.notConfigured => StationState.skipped,
+            TestFlightState.unknown => StationState.pending,
+          },
       };
     case BuildStatus.failed || BuildStatus.timeout:
       final failedStep = build.steps.where((s) => s.hasFailed).firstOrNull;
@@ -108,14 +131,14 @@ PipelineSnapshot computePipeline(
       if (at != null) {
         markThrough(at, StationState.failed, StationState.skipped);
       }
-      states[Station.testFlight] = StationState.skipped;
+      states[Station.store] = StationState.skipped;
     default:
       for (final s in ciStations) {
         states[s] = lastSeen != null && s.index < lastSeen.index
             ? StationState.done
             : StationState.skipped;
       }
-      states[Station.testFlight] = StationState.skipped;
+      states[Station.store] = StationState.skipped;
   }
-  return PipelineSnapshot(states);
+  return snap();
 }

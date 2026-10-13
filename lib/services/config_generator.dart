@@ -151,26 +151,55 @@ void _writeIos(StringBuffer out, ConfigOptions o) {
   }
 }
 
+/// Android release: a signed App Bundle uploaded to Google Play as a draft
+/// on the production track, so nothing reaches users until it is rolled out
+/// by hand in Play Console.
+///
+/// Secrets come from two Codemagic variable groups rather than the uploaded
+/// keystore identity, so they can be created through the API:
+///   android_signing  CM_KEYSTORE (base64), CM_KEYSTORE_PASSWORD,
+///                    CM_KEY_ALIAS, CM_KEY_PASSWORD
+///   play_publishing  GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (service account JSON)
 void _writeAndroid(StringBuffer out, ConfigOptions o) {
   out
     ..writeln('  $androidWorkflowKey:')
     ..writeln('    name: Android release')
     ..writeln('    max_build_duration: 60')
-    ..writeln('    instance_type: linux_x2')
+    ..writeln('    # Linux machines need a paid Codemagic plan; the Mac builds Android too.')
+    ..writeln('    instance_type: mac_mini_m2')
     ..writeln('    environment:')
     ..writeln('      flutter: stable')
-    ..writeln('      android_signing:')
-    ..writeln('        # Reference name of the keystore uploaded in Codemagic team settings.')
-    ..writeln('        - upload_keystore')
+    ..writeln('      groups:')
+    ..writeln('        - android_signing')
+    ..writeln('        - play_publishing')
+    ..writeln('      vars:')
+    ..writeln('        PACKAGE_NAME: ${_quote(o.bundleId)}')
     ..writeln('    scripts:');
   _script(out, 'Set up local.properties', [
     r'echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"',
   ]);
+  _script(out, 'Set up signing', [
+    '# android/app/build.gradle(.kts) signs release builds from key.properties.',
+    r'echo "$CM_KEYSTORE" | base64 --decode > /tmp/upload-keystore.jks',
+    r'cat > "$CM_BUILD_DIR/android/key.properties" <<EOF',
+    'storeFile=/tmp/upload-keystore.jks',
+    r'storePassword=$CM_KEYSTORE_PASSWORD',
+    r'keyAlias=$CM_KEY_ALIAS',
+    r'keyPassword=$CM_KEY_PASSWORD',
+    'EOF',
+  ]);
   _script(out, 'Get Flutter packages', ['flutter pub get']);
   if (o.runTests) _script(out, 'Flutter tests', ['flutter test']);
-  _script(out, 'Build Android App Bundle',
-      [r'flutter build appbundle --release --build-number=$BUILD_NUMBER']);
+  _script(out, 'Build Android App Bundle', [
+    r'LATEST=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" || echo 0)',
+    r'flutter build appbundle --release --build-number=$((LATEST + 1))',
+  ]);
   out
     ..writeln('    artifacts:')
-    ..writeln('      - build/**/outputs/**/*.aab');
+    ..writeln('      - build/**/outputs/**/*.aab')
+    ..writeln('    publishing:')
+    ..writeln('      google_play:')
+    ..writeln(r'        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS')
+    ..writeln('        track: production')
+    ..writeln('        submit_as_draft: true');
 }

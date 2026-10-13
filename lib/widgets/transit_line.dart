@@ -23,7 +23,8 @@ class TransitLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final stations = Station.values;
     final description = [
-      for (final s in stations) '${s.label} ${_describe(snapshot[s])}',
+      for (final s in stations)
+        '${s.labelFor(snapshot.platform)} ${_describe(snapshot[s])}',
     ].join(', ');
     return Semantics(
       container: true,
@@ -38,6 +39,7 @@ class TransitLine extends StatelessWidget {
               Expanded(
                 child: _StationColumn(
                   station: stations[i],
+                  label: stations[i].labelFor(snapshot.platform),
                   state: snapshot[stations[i]],
                   previousDone:
                       i > 0 && snapshot[stations[i - 1]] == StationState.done,
@@ -55,6 +57,7 @@ class TransitLine extends StatelessWidget {
 class _StationColumn extends StatelessWidget {
   const _StationColumn({
     required this.station,
+    required this.label,
     required this.state,
     required this.previousDone,
     required this.isFirst,
@@ -62,6 +65,7 @@ class _StationColumn extends StatelessWidget {
   });
 
   final Station station;
+  final String label;
   final StationState state;
   final bool previousDone;
   final bool isFirst;
@@ -104,7 +108,7 @@ class _StationColumn extends StatelessWidget {
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
-            station.label,
+            label,
             maxLines: 1,
             style: theme.textTheme.labelMedium?.copyWith(
               color: labelColor,

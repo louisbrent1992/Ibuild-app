@@ -308,6 +308,7 @@ class DemoWorld implements CiProvider, SourceHost, StoreConnect {
       appName: pubspec.name,
       version: pubspec.version,
       workflows: codemagic.workflows,
+      androidWorkflows: codemagic.androidWorkflows,
       bundleId: codemagic.bundleId,
     );
   }

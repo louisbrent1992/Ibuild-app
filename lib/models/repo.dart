@@ -22,6 +22,7 @@ class ProjectDetection {
     this.appName,
     this.version,
     this.workflows = const [],
+    this.androidWorkflows = const {},
     this.bundleId,
   });
 
@@ -32,6 +33,9 @@ class ProjectDetection {
   final String? appName;
   final String? version;
   final List<String> workflows;
+
+  /// The subset of [workflows] that build Android.
+  final Set<String> androidWorkflows;
   final String? bundleId;
 
   bool get isFlutter => hasPubspec;

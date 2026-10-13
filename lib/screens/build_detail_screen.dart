@@ -7,6 +7,7 @@ import '../app/app_scope.dart';
 import '../app/theme.dart';
 import '../models/build.dart';
 import '../models/pipeline.dart';
+import '../models/project.dart';
 import '../widgets/common.dart';
 import '../widgets/formatting.dart';
 import '../widgets/step_line.dart';
@@ -86,6 +87,7 @@ class _BuildDetailScreenState extends State<BuildDetailScreen> {
       current,
       testFlight: app.testFlightStateFor(current),
       lastSeen: app.lastSeenStation(current.id),
+      platform: app.project?.platform ?? AppPlatform.ios,
     );
     final web = app.webUrl(current);
     final message = current.message;

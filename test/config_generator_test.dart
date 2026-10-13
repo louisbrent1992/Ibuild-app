@@ -55,4 +55,39 @@ void main() {
     expect(info.workflows, ['ios-testflight', 'android-release']);
     expect(info.bundleId, 'com.recipease.app');
   });
+
+  test('Android publishes a Play draft with secrets from variable groups', () {
+    final text = generateCodemagicYaml(const ConfigOptions(
+      ios: false,
+      android: true,
+      bundleId: 'com.adventhub.ibuild',
+    ));
+    final android = (loadYaml(text) as YamlMap)['workflows']['android-release'] as YamlMap;
+    final play = android['publishing']['google_play'] as YamlMap;
+    expect(play['submit_as_draft'], isTrue);
+    expect(play['track'], 'production');
+    expect(android['environment']['groups'],
+        containsAll(['android_signing', 'play_publishing']));
+    expect(android['environment']['vars']['PACKAGE_NAME'], 'com.adventhub.ibuild');
+    expect(android['instance_type'], 'mac_mini_m2');
+  });
+
+  test('parseCodemagicYaml tells Android workflows apart', () {
+    final info = parseCodemagicYaml(generateCodemagicYaml(const ConfigOptions(
+      android: true,
+    )));
+    expect(info.androidWorkflows, {'android-release'});
+    expect(info.androidWorkflows.contains('ios-testflight'), isFalse);
+  });
+
+  test('a hand-written workflow is Android when it builds an App Bundle', () {
+    final info = parseCodemagicYaml('''
+workflows:
+  release:
+    scripts:
+      - name: Build
+        script: flutter build appbundle --release
+''');
+    expect(info.androidWorkflows, {'release'});
+  });
 }

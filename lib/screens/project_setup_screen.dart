@@ -149,7 +149,7 @@ class _ProjectSetupScreenState extends State<ProjectSetupScreen> {
             decoration: fieldDecoration(
               context,
               'Bundle ID (optional)',
-              helper: 'Used to find the app in App Store Connect, for example com.recipease.app.',
+              helper: 'iOS: finds the app in App Store Connect, for example com.recipease.app. Not used for Android workflows.',
             ),
           ),
           const SizedBox(height: 28),
@@ -377,6 +377,12 @@ class _ProjectSetupScreenState extends State<ProjectSetupScreen> {
       branch: branch,
       repo: _repo,
       bundleId: bundle.isEmpty ? null : bundle,
+      // What the repo's codemagic.yaml says beats guessing from the key.
+      platform: _detection?.workflows.contains(workflow) == true
+          ? (_detection!.androidWorkflows.contains(workflow)
+              ? AppPlatform.android
+              : AppPlatform.ios)
+          : null,
     );
     if (_editing) {
       await app.updateProject(project);

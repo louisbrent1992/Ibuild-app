@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ibuild/models/build.dart';
 import 'package:ibuild/models/pipeline.dart';
+import 'package:ibuild/models/project.dart';
 import 'package:ibuild/widgets/transit_line.dart';
 
 void main() {
@@ -21,7 +22,19 @@ void main() {
       ),
     ));
     for (final station in Station.values) {
-      expect(find.text(station.label), findsOneWidget);
+      expect(find.text(station.labelFor(AppPlatform.ios)), findsOneWidget);
     }
+  });
+
+  testWidgets('an Android line ends at Play', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: TransitLine(
+          snapshot: computePipeline(null, platform: AppPlatform.android),
+        ),
+      ),
+    ));
+    expect(find.text('Play'), findsOneWidget);
+    expect(find.text('TestFlight'), findsNothing);
   });
 }

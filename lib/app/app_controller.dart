@@ -121,10 +121,15 @@ class AppController extends ChangeNotifier {
   Build? buildById(String id) => _cache[id];
   Station? lastSeenStation(String id) => _lastSeen[id];
 
+  /// App Store Connect only knows iOS builds; an Android project ships to a
+  /// Play draft instead, so nothing here is polled for it.
+  bool _noTestFlight(Project? p) =>
+      p == null || (p.bundleId ?? '').isEmpty || p.platform != AppPlatform.ios;
+
   /// Matches a CI build to the first App Store Connect upload after it began.
   TestFlightState testFlightStateFor(Build? build) {
     final p = project;
-    if (store == null || p == null || (p.bundleId ?? '').isEmpty) {
+    if (store == null || _noTestFlight(p)) {
       return TestFlightState.notConfigured;
     }
     if (build == null) return TestFlightState.unknown;
@@ -465,7 +470,7 @@ class AppController extends ChangeNotifier {
   Future<void> refreshTestFlight({bool notify = true}) async {
     final p = project;
     final s = store;
-    if (p == null || s == null || (p.bundleId ?? '').isEmpty) {
+    if (p == null || s == null || _noTestFlight(p)) {
       testFlightBuilds = [];
       testFlightError = null;
       if (notify) notifyListeners();
@@ -499,7 +504,7 @@ class AppController extends ChangeNotifier {
   Future<void> loadBetaGroups() async {
     final p = project;
     final s = store;
-    if (p == null || s == null || (p.bundleId ?? '').isEmpty) {
+    if (p == null || s == null || _noTestFlight(p)) {
       betaGroups = [];
       betaGroupsError = null;
       notifyListeners();
@@ -663,7 +668,7 @@ class AppController extends ChangeNotifier {
   /// upload (workflows that do not publish simply stop being checked).
   bool get _awaitingTestFlight {
     final p = project;
-    if (store == null || p == null || (p.bundleId ?? '').isEmpty) return false;
+    if (store == null || _noTestFlight(p)) return false;
     final latest = latestBuild;
     if (latest == null || latest.status != BuildStatus.finished) return false;
     final state = testFlightStateFor(latest);

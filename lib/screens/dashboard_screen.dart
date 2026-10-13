@@ -38,6 +38,7 @@ class DashboardScreen extends StatelessWidget {
       latest,
       testFlight: app.testFlightStateFor(latest),
       lastSeen: latest == null ? null : app.lastSeenStation(latest.id),
+      platform: project.platform,
     );
 
     return SafeArea(
