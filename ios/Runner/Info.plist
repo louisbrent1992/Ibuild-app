@@ -66,6 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- google_sign_in reads the iOS client ID only from here (CLIENT_ID in GoogleService-Info.plist). -->
+	<key>GIDClientID</key>
+	<string>1014976306147-3h2hubn61mhoq3tntglqi48pumtg63vs.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
